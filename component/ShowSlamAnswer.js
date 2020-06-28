@@ -1,8 +1,9 @@
 import React from 'react';
-import { View,ScrollView,StyleSheet,BackHandler } from 'react-native';
+import { View,ScrollView,StyleSheet,BackHandler,Alert } from 'react-native';
 import { Text,Block,Accordion,Button } from 'galio-framework';
 import Colors from './../assets/styles/color';
 const colors = Colors.getColor();
+const url = 'http://192.168.43.216:8080/';
 
 export default class ShowSlamAnswer extends React.Component{
     constructor(props){
@@ -11,7 +12,17 @@ export default class ShowSlamAnswer extends React.Component{
     
     }
     
-
+    backAction = () => {
+        Alert.alert("Exit", "do you really want to exit?", [
+          {
+            text: "Cancel",
+            onPress: () => null,
+            style: "cancel"
+          },
+          { text: "YES", onPress: () => BackHandler.exitApp() }
+        ]);
+        return true;
+      };
 
     renderAnswers = () =>{
         let key=0;
@@ -31,6 +42,12 @@ export default class ShowSlamAnswer extends React.Component{
             let dataArray = [
                 {
                 title: title, content: ans, 
+                    icon: {
+                        name: 'keyboard-arrow-right',
+                        family: 'material',
+                        size: 16,
+                        color:colors.grey
+                    }
                 },
             ]
             
@@ -54,7 +71,7 @@ export default class ShowSlamAnswer extends React.Component{
 
     fetchtqueans = () => {
         this.setState({loading:true},()=>{
-            fetch('http://192.168.43.216:8080/getque'+this.state.token).
+            fetch(url+'getque'+this.state.token).
             then(res=>{
                 return res.json();
             }).
@@ -97,7 +114,10 @@ export default class ShowSlamAnswer extends React.Component{
 
     componentDidMount(){  
         this.fetchtqueans();
-        
+        this.backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            this.backAction
+          );
     }
 
 
@@ -109,8 +129,8 @@ export default class ShowSlamAnswer extends React.Component{
         return(
         <ScrollView style={styles.container}>
             {this.loading()}
-            <Button round style={{backgroundColor:colors.fontColor,marginTop:10,width:'100%'}}
-                onPress={this.fetchtqueans}><Text style={{color:colors.primaryColor}}>Refresh</Text></Button>
+            <Button  style={{backgroundColor:colors.button,borderRadius:20,marginTop:10,width:'100%'}}
+                onPress={this.fetchtqueans}><Text style={{color:colors.fontColor}}>Refresh</Text></Button>
             <View style={{paddingBottom:10}}>
                 {this.renderAnswers()}
             </View>
@@ -142,7 +162,7 @@ const styles = StyleSheet.create({
     },
     block:{
         backgroundColor:colors.fontColor,
-        borderRadius:20,
+        borderRadius:5,
         padding:5,
         justifyContent:'center',
         marginTop:10

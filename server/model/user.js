@@ -17,6 +17,10 @@ const User = {
     password:{
         type:String,
         required:true
+    },
+    imgurl:{
+        type:String,
+        required:true
     }
 };
 

@@ -4,6 +4,7 @@ import { Text,Block,Input,Button,Toast } from 'galio-framework';
 import Colors from './../assets/styles/color';
 const colors = Colors.getColor();
 
+const url = 'http://192.168.43.216:8080/';
 export default class AnswerQuestion extends React.Component{
     constructor(props){
         super(props);
@@ -19,7 +20,7 @@ export default class AnswerQuestion extends React.Component{
         let queId = id;
 
         this.setState({loading:true},()=>{
-            fetch('http://192.168.43.216:8080/postans', {
+            fetch(url+'postans', {
             method: 'POST',
             headers: {
             Accept: 'application/json',
@@ -57,7 +58,7 @@ export default class AnswerQuestion extends React.Component{
        const id = this.state.id;
 
        this.setState({loading:true},()=>{
-            fetch('http://192.168.43.216:8080/getusersquestion/?id='+id).then
+            fetch(url+'getusersquestion/?id='+id).then
             (res=>{
                 return res.json();
             }).then(data=>{
@@ -104,7 +105,7 @@ export default class AnswerQuestion extends React.Component{
                         color={colors.primaryColor}></Input>
 
                         <Button round 
-                        style={{backgroundColor:colors.primaryColor}}
+                        style={{backgroundColor:colors.button}}
                         onPress={e=>{
                             e.preventDefault();
                             this.submitAns(item.id);
@@ -138,7 +139,7 @@ export default class AnswerQuestion extends React.Component{
                     
                     <Input 
                     onChangeText={(text)=>{this.setState({id:text})}} 
-                    rounded placeholder="Enter the code of your friend!" 
+                    rounded placeholder="Enter the slambook id of your friend!" 
                     placeholderTextColor={colors.secondaryColor} 
                     color={colors.primaryColor}
                     ></Input>
@@ -146,7 +147,7 @@ export default class AnswerQuestion extends React.Component{
                     <Button round uppercase onPress={(e)=>{
                         e.preventDefault();
                         this.fetchQue();
-                    }} style={{backgroundColor:colors.primaryColor}}>Search
+                    }} style={{backgroundColor:colors.button}}>Search
                     </Button>
                 
             </Block>
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
       },
       block:{
           backgroundColor:colors.fontColor,
-          borderRadius:20,
+          borderRadius:5,
           padding:10
       },
       block1:{
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
       queBlock:{
         backgroundColor:colors.fontColor,
         marginTop:10,
-        borderRadius:20,
+        borderRadius:5,
         padding:10,
         justifyContent:'center',
         }   

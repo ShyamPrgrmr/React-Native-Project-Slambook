@@ -3,8 +3,13 @@ import { Text,Block,Input,Button, } from 'galio-framework';
 import { StyleSheet,View,Image } from 'react-native';
 import { Login } from './../api/auth';
 import Colors from './../assets/styles/color';
+import * as fs from 'expo-file-system';
+import * as SQLite from 'expo-sqlite';
+
 
 const colors = Colors.getColor();
+const db = SQLite.openDatabase("local.db");
+const url = 'http://192.168.43.216:8080/';
 
 export default class LoginPage extends React.Component{
     constructor(props){
@@ -16,13 +21,71 @@ export default class LoginPage extends React.Component{
 
     onRegister=(e)=>{
         e.preventDefault();
-        
         this.props.navigation.navigate("Register");
+    }
+
+    componentDidMount=async()=>{
+        this.checkDataLocalDatabase();
+        try{
+            let filename = fs.documentDirectory + 'login/login.json';
+            let data = await fs.readAsStringAsync(filename);
+            let r1 = JSON.parse(data);
+            let username = r1.username;
+            let password = r1.password;
+            this.login(username,password);
+        }catch(err){
+            console.log(err)
+        }
+    }
+
+    writeLoginData=async (username,password)=>{
+        try{
+            let filename = fs.documentDirectory + 'login/login.json';
+            let content = '{"username":"'+username+'" , "password":"'+password+'"}';
+            await fs.writeAsStringAsync(filename,content);
+        }catch(err){console.log('error'+err)}
+    }
+
+    addDataLocalDatabase=(username,password)=>{
+          
+    }
+
+    checkDataLocalDatabase=()=>{
+        
+    }
+
+    login=(username,password)=>{
+    this.setState({isLoading:true});
+        fetch(url+'login', {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              username: username,
+              password: password,
+            }),
+        }).then(response=>{
+           return response.json();
+        }).then(async data=>{
+            if(data.status){
+                this.props.navigation.navigate("Dasboard",{token:data.token})
+            }else{
+                this.setState({showError:true,errorMsg:'Login Credentials are wrong'})
+            }
+            this.setState({isLoading:false})
+
+            }).catch(err=>{
+            console.log(err)
+            
+            this.setState({isLoading:false})
+        });        
     }
 
     onLogin=e=>{
         this.setState({isLoading:true});
-        fetch('http://192.168.43.216:8080/login', {
+        fetch(url+'login', {
             method: 'POST',
             headers: {
               Accept: 'application/json',
@@ -34,13 +97,18 @@ export default class LoginPage extends React.Component{
             }),
         }).then(response=>{
            return response.json();
-        }).then(data=>{
-            data.status? 
-                this.props.navigation.navigate("Dasboard",{token:data.token}) : 
-                this.setState({showError:true,errorMsg:'Login Credentials are wrong'}); 
-                this.setState({isLoading:false})
+        }).then(async data=>{
+            if(data.status){
+                await this.writeLoginData(this.state.username,this.state.password);
+                this.props.navigation.navigate("Dasboard",{token:data.token})
+            }else{
+                this.setState({showError:true,errorMsg:'Login Credentials are wrong'})
+            }
+            this.setState({isLoading:false})
+
             }).catch(err=>{
             console.log(err)
+            
             this.setState({isLoading:false})
         });
     }

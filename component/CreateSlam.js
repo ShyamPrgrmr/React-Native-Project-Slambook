@@ -1,11 +1,12 @@
 import React from 'react';
-import { View,ScrollView,StyleSheet,Image,BackHandler,Alert } from 'react-native';
+import { View,ScrollView,StyleSheet,Image,BackHandler,Alert,ToastAndroid } from 'react-native';
 import { Text,Block,Input,Button } from 'galio-framework';
 import { NavigationAction } from '@react-navigation/native'
 import Colors from './../assets/styles/color';
 import FormValidator from './../helper/formValidator'
 const colors = Colors.getColor();
 
+const url = 'http://192.168.43.216:8080/';
 export default class CreateSlam extends React.Component{
     constructor(props){
         super(props);
@@ -28,20 +29,23 @@ export default class CreateSlam extends React.Component{
 
     fetchQue = () =>{
         this.setState({loading:true},()=>{
-            fetch('http://192.168.43.216:8080/getque'+this.state.token).
+            fetch(url+'getque'+this.state.token).
             then(res=>{
                 return res.json();
             }).
             then(data=>{
                 if(data.status){
                     let list_1 = [];
+                    
                     list_1=data.que.map((que)=>{
                         let question = que.que;
+                        let id = que.id;
+
                         if(!question){return;}
                         if(question[question.length-1]!=='?'){
-                            question = question + ' ?';
+                            question = question + '?';
                         } 
-                        return question;
+                        return {question:question,id:id};
                     }) 
 
                     this.setState({list:list_1,loading:false});
@@ -69,7 +73,7 @@ export default class CreateSlam extends React.Component{
         if(FormValidator.validateQuestion(this.state.question))
         {  
           this.setState({loading:true},()=>{
-            fetch('http://192.168.43.216:8080/postque', {
+            fetch(url+'postque', {
                 method: 'POST',
                 headers: {
                 Accept: 'application/json',
@@ -86,7 +90,7 @@ export default class CreateSlam extends React.Component{
                     this.setState({loading:false,question:''})
                     this.fetchQue();
                 }else{
-                    //display toast
+                    ToastAndroid.show('Server not responding!',ToastAndroid.SHORT);
                 }
                 }).catch(err=>{
                 console.log(err)
@@ -94,19 +98,69 @@ export default class CreateSlam extends React.Component{
             });
           })  
         }else{
-            return;
+            alert('Question is not valid!')
         }
     }
 
+    deletequestion=  (id)=>{
+            this.setState({loading:true},async ()=>{
+                try{
+                    const result = await (await fetch(url+'removeque', {
+                        method: 'POST',
+                        headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            token:this.state.token,
+                            id:id}),})).json();
+        
+                    if(result.status){
+                        let data = this.state.list.filter(que=>{
+                            if(que.id===id){
+                                return false;
+                            } else{
+                                return true;
+                            }
+                        });
+                        this.setState({list:data,loading:false});
+                    }else{ 
+                        ToastAndroid.show('Server not responding!',ToastAndroid.SHORT);
+                        this.setState({loading:false});
+                    }
+                }catch(err){
+                    console.log(err)
+                }
+            })
+    }
+
     listOfQuestion=()=>{
-        let i = 0;
+        let i=0;
         const listOfQue = this.state.list.map( item => {
             i++;
-            return(<Text key={i} style={{
-            color:colors.primaryColor,
-            textAlign:'center',
-            fontSize:18,
-            }}>{ i+". "+item}</Text>)
+            return(
+            <View key={item.id} 
+            style={{display:'flex',flexDirection:'row',marginTop:10}}>
+
+                <Text 
+                 style={{
+                    color:colors.primaryColor,
+                    width:'90%',
+                    fontSize:15,
+                    }}>{i+'.'+item.question}</Text>
+                
+                <Button onlyIcon icon="md-remove-circle-outline" 
+                 iconFamily="ionicon" 
+                 iconSize={20} color={colors.fontColor} 
+                 iconColor={colors.error}
+                 style={{ width: 20, height: 20,marginLeft:'auto'}}
+                 
+                 onPress={(e)=>{e.preventDefault();
+                    this.deletequestion(item.id);
+                }}>delete</Button>
+            
+            </View>
+            )
         });
 
         if(listOfQue.length===0){
@@ -136,7 +190,7 @@ export default class CreateSlam extends React.Component{
                      height:100,
                     }
                 }></Input>
-                <Button round uppercase style={{backgroundColor:colors.primaryColor}} onPress={this.addQuestion}>Add</Button>
+                <Button round uppercase style={{backgroundColor:colors.button}} onPress={this.addQuestion}>Add</Button>
             </Block>
             <Block style={styles.block1}>
                 {this.listOfQuestion()}
@@ -168,13 +222,13 @@ const styles = StyleSheet.create({
     },
     block:{
         backgroundColor:colors.fontColor,
-        borderRadius:20,
+        borderRadius:5,
         padding:10
     },
     block1:{
         marginTop:10,
         backgroundColor:colors.fontColor,
-        borderRadius:20,
+        borderRadius:5,
         padding:10,
         justifyContent:'center',
     }

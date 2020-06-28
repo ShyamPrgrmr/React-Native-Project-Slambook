@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import React from 'react';
 import { View,ScrollView,StyleSheet } from 'react-native';
 import { Text } from 'galio-framework';
@@ -5,8 +6,11 @@ import { StackActions,NavigationActions } from 'react-navigation';
 import CreateSlam from './CreateSlam';
 import ShowSlamAnswer from './ShowSlamAnswer';
 import AnswerQuestion from './AnswerQuestion';
+import Profile from './profile';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
+
 import Ionicons from 'react-native-vector-icons/Ionicons'
 
 import Colors from './../assets/styles/color';
@@ -21,34 +25,51 @@ export default class Dashboard extends React.Component{
     }
 
     resetNavigation(){
+        
     }
     
-    Tab = createBottomTabNavigator();
+    Tab = createMaterialBottomTabNavigator();
 
     //<ion-icon name="book-outline"></ion-icon>
     render(){
         return(
-        <NavigationContainer independent={true}>
+        <NavigationContainer independent={true} >
             <this.Tab.Navigator 
-              
+
                 screenOptions={({ route }) => ({tabBarIcon: ({ focused, color, size }) => {
                     let iconName;
+                    let backgroundColor;
+                    let Icocolor;
 
                     if (route.name === 'CreateSlam') {
-                        iconName = focused ? 'ios-add-circle': 'ios-add';
+                        iconName = focused ? 'ios-add' : 'ios-add';
+                        backgroundColor = focused ? colors.secondaryColor : '#fff';
+                        Icocolor = focused ? colors.fontColor : colors.grey;
                     } else if (route.name === 'AnswerList') {
-                        iconName = focused ? 'ios-list-box' : 'ios-list';
+                        iconName = focused ? 'ios-list' : 'ios-list';
+                        backgroundColor = focused ? colors.secondaryColor : '#fff';
+                        Icocolor = focused ? colors.fontColor : colors.grey;
                     } else if(route.name === 'AnswerQue'){
-                        iconName = focused ? 'md-square' : 'md-square-outline';
+                        iconName = focused ? 'md-book' : 'md-book';
+                        backgroundColor = focused ? colors.secondaryColor : '#fff';
+                        Icocolor = focused ? colors.fontColor : colors.grey;
+                    }else if(route.name === 'Profile'){
+                        iconName = focused ? 'ios-person' : 'ios-person';
+                        backgroundColor = focused ? colors.secondaryColor : '#fff';
+                        Icocolor = focused ? colors.fontColor : colors.grey;
                     }
-                    return <Ionicons name={iconName} size={size} color={colors.primaryColor} />;
+
+                    return <Ionicons name={iconName}  size={size} color={Icocolor} />;
                     },
-                })
-                }
-                tabBarOptions={{
-                    activeTintColor:colors.primaryColor,
-                    inactiveTintColor: colors.grey,
-                  }}
+                })}
+                
+
+                sceneAnimationEnabled={false}
+                barStyle={{
+                    backgroundColor:colors.secondaryColor,
+                }}
+                
+            
             >
               <this.Tab.Screen name="CreateSlam" initialParams={
                   {
@@ -73,6 +94,16 @@ export default class Dashboard extends React.Component{
               options={{
                   title:'Slambooks',
               }} />
+
+             
+            <this.Tab.Screen name="Profile" initialParams={
+                  {
+                      token:this.state.token
+                  }
+              } options={{
+                  title:'Profile',
+              }} component={Profile} />
+
             </this.Tab.Navigator>
         </NavigationContainer>)
     }

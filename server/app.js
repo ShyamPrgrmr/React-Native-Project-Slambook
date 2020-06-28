@@ -7,10 +7,29 @@ const jwt = require('jsonwebtoken');
 const Users = require('./model/user');
 const Que = require('./model/question');
 const Answer = require('./model/answer');
-const fetch = require('node-fetch')
+const fetch = require('node-fetch');
+const path = require('path');
+const fs = require('fs')
 
+const multer = require('multer');
+const question = require('./model/question');
+
+const uploads = multer({dest:'./public/profiles/'})
+
+const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, './public/profiles/');
+    },
+    filename:(req, file, cb) => {
+        cb(null, new Date().toISOString() + '-' + file.originalname+'.jpg');
+    }
+});
+  
+
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(multer({ storage: fileStorage }).single('avatar'));
 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,8 +41,59 @@ app.use((req, res, next) => {
   next();
 });
 
+
+
+
 app.get('/',(req,res,next)=>{
     res.status(200).json({status:true});
+});
+
+app.get('/getavatar:token',async (req,res,next)=>{
+    const userId = await jwt.verify(req.params.token,'Shyam').id;
+    const user = await Users.findById(userId);
+    if(!user){
+        next({code:404,msg:'User not found'});
+    }
+    else{
+        let imageURL = user.imgurl;
+        
+        res.status(200).json({status:true,imgurl:imageURL});
+    }
+})
+
+app.post('/avatar:token',async (req,res,next)=>{
+    
+    const userID = await jwt.verify(req.params.token,'Shyam').id;
+    const userData = await Users.findById(userID);
+    const imageUrl = req.file;
+    
+    try{
+        if(!userData){
+            next({code:404,msg:'User not found'});
+        }else{
+            let oldImage = userData.imgurl;
+            
+
+            try{
+                await fs.unlinkSync('./public/profiles/'+oldImage)
+            }catch(err){}
+            
+            
+            let result = await userData.updateOne({imgurl:imageUrl.filename});
+           
+            if(result){  
+                res.status(200).json({status:true,imgurl:imageUrl});
+            }else{
+                next({code:505,msg:'Internal server error'})        
+            }
+        }
+
+    }catch(err){
+        next({code:505,msg:'Internal server error'+'\n'+err})
+    };
+    
+    
+    
 });
 
 
@@ -32,8 +102,6 @@ const answer = async (userId,queId)=>{
     if(!answer){return [{name:'',ans:''}]}
     else return answer.ans
 }
-
-//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVlZGY5YjU5NWNkYzQ0MmUyNjQ0ZmIxZCIsIm5hbWUiOiJzaHlhbSIsInVzZXJuYW1lIjoic2h5YW0iLCJpYXQiOjE1OTE4NzQ3NjV9.zrJV66hAk5nccvYySow2cNfMpxmmh5hR0ZW2J-KGNmE
 
 app.get('/getusersquestion',async (req,res,next)=>{
     try{
@@ -52,7 +120,32 @@ app.get('/getusersquestion',async (req,res,next)=>{
     }
 });
 
+app.post('/removeque',async (req,res,next)=>{
+    try{
+        
+        let token = req.body.token;
+        let queId = req.body.id;
+        const userId = await jwt.verify(token,'Shyam').id;
+        
+        const que = await  Que.findOne({userId:userId}); 
+        const queArray = que.que;
 
+        let newQueArray = queArray.filter(item=>{
+            if(item.id===queId){
+                return false;
+            }else{
+                return true;
+            }
+        });
+
+        const queData = await que.updateOne({que:newQueArray});
+        if(!queData)
+            res.status(200).json({status:false});
+        else
+            res.status(200).json({status:true});
+
+    }catch(err){next({code:505,msg:'Internal server error'+'\n'+err})}
+})
 
 app.get('/getque:token',async (req,res,next)=>{
     try{
@@ -86,7 +179,7 @@ app.post('/login',async (req,res,next)=>{
         if(!result){
             next({code:404,msg:'User not found!'});
         }else{
-            const token = await jwt.sign({id:user._id,name:user.name,username:user.username},'Shyam');
+            const token = await jwt.sign({id:user._id,name:user.name,username:user.username},'Shyam',{expiresIn:'1h'});
             res.status(200).json({status:true,token:token});
         }
     }catch(err){
@@ -112,12 +205,13 @@ app.post('/register',(req,res,next)=>{
                     name:name,
                     mobile:mobile,
                     username:username,
-                    password:pass
+                    password:pass,
+                    imgurl:'Not Specified'
                 });
                 userModel.save().then(()=>{
                     res.status(200).json({status:true})
                 }).catch((err)=>{
-                    next({code:505,msg:"User creation failure"});
+                    next({code:505,msg:"User creation failure"+err});
                     return
                 })
             }
@@ -164,6 +258,19 @@ app.post('/postque',async (req,res,next)=>{
     }
 });
 
+app.get('/userid:token',async (req,res,next)=>{
+    try {
+        const token = req.params['token'];
+        let data = await jwt.verify(token,'Shyam');
+        let userId = data.id;
+        let user = await Users.findById(userId);
+
+        res.status(200).json({status:true,id:userId,name:user.name,mobile:user.mobile});
+    } catch (error) {
+       next({code:505,msg:'Internal server error!'});
+    }
+})
+
 app.post('/postans',async (req,res,next)=>{
     
     try{
@@ -200,6 +307,10 @@ app.post('/postans',async (req,res,next)=>{
     }
 })
 
+
+
+
+
 app.use((err,req,res,next)=>{
     let code = err.code;
     let msg = err.msg;
@@ -216,5 +327,5 @@ mongoose
     console.log('started')
   })
   .catch(err => {
-    res.status(404).json({status:false,msg:"Database Server Error!"});
+    
 });

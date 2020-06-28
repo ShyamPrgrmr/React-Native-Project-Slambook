@@ -16,7 +16,8 @@ export default class RegisterPage extends React.Component{
             username:'',
             password:'',
             isShowState:false,
-            msg:''
+            msg:'',
+            loading:false
         }
         this.onSubmit = this.onSubmit.bind(this);
     }
@@ -33,52 +34,64 @@ export default class RegisterPage extends React.Component{
 
     onSubmit=(e)=>{
         e.preventDefault();
-       if(this.validate()){
+
+        this.setState({loading:true},()=>{
+            if(this.validate()){
            
-            fetch('http://192.168.43.216:8080/register',
-                {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name:this.state.firstname + " " + this.state.lastname,
-                    mobile:this.state.mobile,
-                    username:this.state.username,
-                    password:this.state.password
-                }),
-            }).then(result=>{
-                return result.json();
-            }).then(data=>{
-                if(data.status){
-                    this.props.navigation.navigate("Login");
-                }else{                 
-                    this.setState({isShowState:true,msg:data.msg});
-                    setTimeout(()=>{
-                        this.setState({isShowState:false});
-                    },2000) 
-                }
-            }).catch((err)=>{
-                console.log(err)
-            })
-       }else{
-        this.setState({isShowState:true});
-        setTimeout(()=>{
-            this.setState({isShowState:false});
-        },1000)
-       }
+                fetch('http://192.168.43.216:8080/register',
+                    {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name:this.state.firstname + " " + this.state.lastname,
+                        mobile:this.state.mobile,
+                        username:this.state.username,
+                        password:this.state.password
+                    }),
+                }).then(result=>{
+                    this.setState({loading:false})
+                    return result.json();
+                }).then(data=>{
+                    if(data.status){
+                        this.props.navigation.navigate("Home");
+                    }else{                 
+                        this.setState({isShowState:true,msg:data.msg});
+                        setTimeout(()=>{
+                            this.setState({isShowState:false});
+                        },2000) 
+                    }
+                }).catch((err)=>{
+                    console.log(err)
+                })
+           }else{
+            this.setState({isShowState:true});
+            setTimeout(()=>{
+                this.setState({isShowState:false});
+            },5000)
+           }
+        });
+       
     }
 
     showError=()=>{
         return(
-        this.state.isShowState? <Text style={{color:colors.error}}>{this.state.msg}</Text> : null
+        this.state.isShowState? <Text style={{color:'#000'}}>{this.state.msg}</Text> : null
         )
+    }
+
+    loading=()=>{
+        return this.state.loading ? <View style={styles.loading}></View> : null;
     }
 
     render(){
         return(
             <View style={styles.container}> 
+                
+                {this.loading()}
+
                 <ScrollView style={styles.loginBlock} showsVerticalScrollIndicator={false}>
                     <Text style={styles.loginHeading}>Register</Text>
                     {this.showError()}
@@ -118,13 +131,14 @@ const styles = StyleSheet.create({
         left:0,
         width:'100%',
         height:'100%',
-        backgroundColor:colors.secondaryColor,
+        backgroundColor:colors.transperentLoading,
         zIndex:100,
         display:"flex",
         justifyContent:"center",
         alignItems:"center"
     },
     container:{
+      position:'relative',
       flex:1,
       justifyContent:'center',
       alignItems:'center',
